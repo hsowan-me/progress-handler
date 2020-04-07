@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用Jquery处理上传下载的进度</title>
+</head>
+
+<body>
+    <div id="app">
+        <button @click="handleDownload">下载</button><br>
+        <input type="file" @change="handleChooseFile" multiple><button @click="handleUpload">上传</button>{{ msg }}
+
+    </div>
+
+    <script src="https://cdn.bootcss.com/vue/2.6.11/vue.min.js"></script>
+    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                file: null,
+                msg: ''
+            },
+            methods: {
+                handleDownload() {
+                    // https://api.jquery.com/jquery.ajax/
+                    $.ajax({
+                        url: 'https://miro.medium.com/max/2790/1*4M64q8gmQVJsIIjbTiGWxg.png',
+                        type: 'get',
+                        responseType: 'blob',
+                        xhr: () => {
+                            const downloadXhr = $.ajaxSettings.xhr();
+                            // https://developer.mozilla.org/zh-CN/docs/Web/API/EventTarget/addEventListener
+                            downloadXhr.addEventListener('progress', (e) => {
+                                if (e.lengthComputable) {
+                                    console.log('下载进度: ' + (e.loaded / e.total * 100)
+                                        .toFixed(2) + '%')
+                                }
+                            }, false);
+                            return downloadXhr;
+                        },
+                        success: (res) => {
+                            const url = window.URL.createObjectURL(new Blob([res.data]))
+                            const link = document.createElement('a')
+                            link.style.display = 'none'
+                            link.href = url
+                            const filename = 'axios.png'
+                            link.setAttribute('download', filename)
+                            document.body.appendChild(link)
+                            link.click()
+                        },
+                        error: (err) => {
+                            // 请求失败
+                            console.log(err);
+                        }
+                    });
+                },
+                handleChooseFile(e) {
+                    this.file = e.target.files[0]
+                    this.msg = ''
+                },
+                handleUpload() {
+                    if (this.file) {
+                        const data = new FormData()
+                        data.append('file', this.file)
+                        $.ajax({
+                            url: "https://api.example.com/upload",
+                            type: "post",
+                            data,
+                            processData: false, // 不要对data参数进行序列化处理，默认为true
+                            contentType: 'multipart/form-data;charset=UTF-8',
+                            xhr: function () {
+                                const uploadXhr = $.ajaxSettings.xhr();
+                                if (uploadXhr.upload) {
+                                    uploadXhr.upload.addEventListener('progress', function (e) {
+                                        if (e.lengthComputable) {
+                                            console.log('上传进度: ' + (e.loaded / e.total * 100).toFixed(2) + '%')
+                                        }
+                                    }, false);
+                                }
+                                return uploadXhr;
+                            },
+                            success: function (res) {
+                                // 请求成功
+                            },
+                            error: function (err) {
+                                // 请求失败
+                                console.log(err);
+                            }
+                        });
+                    } {
+                        this.msg = '请先选择文件'
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>

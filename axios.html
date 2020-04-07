@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用Axios处理上传下载的进度</title>
+</head>
+
+<body>
+    <div id="app">
+        <button @click="handleDownload">下载</button><br>
+        <input type="file" @change="handleChooseFile" multiple><button @click="handleUpload">上传</button>{{ msg }}
+    </div>
+
+    <script src="https://cdn.bootcss.com/vue/2.6.11/vue.min.js"></script>
+    <script src="https://cdn.bootcss.com/axios/0.19.2/axios.min.js"></script>
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                file: null,
+                msg: ''
+            },
+            methods: {
+                handleDownload() {
+                    axios({
+                        url: 'https://miro.medium.com/max/2790/1*4M64q8gmQVJsIIjbTiGWxg.png',
+                        responseType: 'blob',
+                        method: 'get',
+                        onDownloadProgress: (e) => {
+                            console.log(e)
+                            if (e.lengthComputable) {
+                                console.log('下载进度: ' + (e.loaded / e.total * 100).toFixed(2) + '%')
+                            }
+                        }
+                    }).then((res) => {
+                        const url = window.URL.createObjectURL(new Blob([res.data]))
+                        const link = document.createElement('a')
+                        link.style.display = 'none'
+                        link.href = url
+                        const filename = 'axios.png'
+                        link.setAttribute('download', filename)
+                        document.body.appendChild(link)
+                        link.click()
+                    }).finally(() => {
+                        this.downloadingText = ''
+                    })
+                },
+                handleChooseFile (e) {
+                    this.file = e.target.files[0]
+                    this.msg = ''
+                },
+                handleUpload() {
+                    if (this.file) {
+                        const data = new FormData()
+                        data.append('file', this.file)
+                        this.$axios.$post('https://api.example.com/upload', data, {
+                            headers: {
+                                'Content-Type': 'multipart/form-data;charset=UTF-8'
+                            },
+                            onUploadProgress: (e) => {
+                                if (e.lengthComputable) {
+                                    console.log('上传进度: ' + (e.loaded / e.total * 100).toFixed(2) + '%')
+                                }
+                            }
+                        }).then((res) => {
+                            // console.log(res)
+                        })
+                    } else {
+                        this.msg = '请先选择文件'
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>
